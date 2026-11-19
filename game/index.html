@@ -3,17 +3,260 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Block Dodger</title>
+<title>Costa Palma — Make GTA 6</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #11141b; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1440; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
   #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-  /* Read aloud, never shown: the status line screen readers announce. */
   #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .panel { background: rgba(12, 12, 22, 0.78); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; color: #f2f3f5; box-shadow: 0 2px 10px rgba(0,0,0,0.45); }
+  .accent { color: #ffd166; }
+  .teal { color: #37e6c8; }
+  .pink { color: #ff5da2; }
+  /* ---- top left: mission + dispatch ---- */
+  #mission-panel { position: fixed; top: 12px; left: 12px; width: 330px; padding: 10px 12px; z-index: 5; }
+  #mission-panel .job { font-size: 15px; font-weight: 800; letter-spacing: 0.4px; }
+  #mission-panel .job .timer { float: right; background: #ff5d5d; border-radius: 5px; padding: 1px 7px; font-size: 13px; }
+  #mission-panel .objective { font-size: 15px; font-weight: 700; margin-top: 4px; }
+  #mission-panel .next { font-size: 12.5px; color: #37e6c8; margin-top: 2px; }
+  #mission-panel .stagebar { height: 7px; background: #333; border-radius: 4px; margin-top: 7px; overflow: hidden; }
+  #mission-panel .stagebar > div { height: 100%; background: linear-gradient(90deg, #ffd166, #ff8c42); }
+  #mission-panel .stage { font-size: 11.5px; color: #c8ccd4; margin-top: 3px; }
+  #dispatch-panel { position: fixed; top: 158px; left: 12px; width: 330px; padding: 8px 12px; z-index: 5; font-size: 13px; }
+  #dispatch-panel .head { font-weight: 800; letter-spacing: 0.5px; color: #ff8c8c; font-size: 13px; }
+  #dispatch-panel .head .count { float: right; color: #f2f3f5; }
+  #dispatch-panel table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  #dispatch-panel td { padding: 2.5px 2px; }
+  #dispatch-panel td.dist { text-align: right; color: #c8ccd4; }
+  #dispatch-panel .role { font-size: 10.5px; font-weight: 800; border-radius: 4px; padding: 2px 6px; color: #111; }
+  #dispatch-panel .foot { font-size: 11.5px; color: #c8ccd4; margin-top: 3px; }
+  /* ---- side job panel (taxi fare / vigilante target) ---- */
+  #sidejob-panel { position: fixed; top: 332px; left: 12px; width: 330px; padding: 8px 12px; z-index: 5; font-size: 13px; display: none; border-color: rgba(55,230,200,0.5); }
+  #sidejob-panel .head { font-weight: 800; letter-spacing: 0.5px; color: #37e6c8; font-size: 13px; }
+  #sidejob-panel .fare { font-size: 22px; font-weight: 900; color: #7CFC00; }
+  #sidejob-panel .detail { font-size: 12.5px; color: #f2f3f5; margin-top: 2px; }
+  #sidejob-panel .sub2 { font-size: 11.5px; color: #c8ccd4; }
+  @keyframes turfblink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+  .turfwar { color: #ff5d5d; font-weight: 900; animation: turfblink 1s infinite; }
+  /* ---- top centre: wanted ---- */
+  #wanted-panel { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); text-align: center; z-index: 5; }
+  #wanted-panel .stars { font-size: 30px; letter-spacing: 4px; color: #ffd166; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+  #wanted-panel .stars .off { color: rgba(255,255,255,0.28); }
+  #wanted-panel .chip { display: inline-block; background: rgba(12,12,22,0.78); border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; padding: 2px 9px; font-size: 12px; font-weight: 800; margin: 2px; }
+  /* ---- top right: money / status ---- */
+  #status-panel { position: fixed; top: 12px; right: 12px; width: 250px; padding: 10px 12px; z-index: 5; text-align: right; }
+  #status-panel .money { font-size: 30px; font-weight: 900; color: #7CFC00; text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+  #status-panel .clock { font-size: 13px; color: #c8ccd4; }
+  .bar { height: 9px; background: #333; border-radius: 5px; overflow: hidden; margin-top: 4px; }
+  .bar > div { height: 100%; }
+  #status-panel .barlabel { font-size: 11px; color: #c8ccd4; display: flex; justify-content: space-between; }
+  #status-panel .rank { font-size: 13px; font-weight: 800; color: #37e6c8; margin-top: 6px; }
+  #status-panel .rp { font-size: 11.5px; color: #c8ccd4; }
+  /* ---- right middle: weapons + crew ---- */
+  #weapons-panel { position: fixed; top: 218px; right: 12px; z-index: 5; display: flex; gap: 6px; }
+  #weapons-panel .slot { width: 62px; padding: 6px 4px; text-align: center; background: rgba(12,12,22,0.78); border: 1px solid rgba(255,255,255,0.16); border-radius: 7px; color: #f2f3f5; }
+  #weapons-panel .slot.sel { border-color: #ffd166; box-shadow: 0 0 0 2px rgba(255,209,102,0.5); }
+  #weapons-panel .slot.locked { opacity: 0.45; }
+  #weapons-panel .slot .num { font-size: 10px; color: #c8ccd4; }
+  #weapons-panel .slot .wname { font-size: 12px; font-weight: 800; }
+  #weapons-panel .slot .ammo { font-size: 12px; color: #ffd166; font-weight: 700; }
+  #crew-panel { position: fixed; top: 306px; right: 12px; width: 250px; z-index: 5; }
+  #crew-panel .card { display: flex; gap: 8px; align-items: center; padding: 7px 10px; margin-bottom: 6px; background: rgba(12,12,22,0.78); border: 1px solid rgba(255,255,255,0.16); border-radius: 8px; }
+  #crew-panel .avatar { width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 900; color: #111; }
+  #crew-panel .cname { font-size: 13px; font-weight: 800; }
+  #crew-panel .crole { font-size: 11.5px; color: #c8ccd4; }
+  #crew-panel .cperk { font-size: 11px; color: #37e6c8; font-weight: 700; }
+  /* ---- centre: chain + action toast ---- */
+  #chain-popup { position: fixed; top: 42%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 6; display: none; }
+  #chain-popup .n { font-size: 46px; font-weight: 900; color: #ffd166; text-shadow: 0 3px 12px rgba(0,0,0,0.7); }
+  #chain-popup .t { font-size: 14px; font-weight: 800; letter-spacing: 2px; color: #fff; }
+  #toast { position: fixed; top: 56%; left: 50%; transform: translateX(-50%); z-index: 6; font-size: 20px; font-weight: 900; color: #7CFC00; text-shadow: 0 2px 8px rgba(0,0,0,0.7); display: none; }
+  /* ---- bottom left: district + minimap + controls ---- */
+  #district-label { position: fixed; left: 12px; bottom: 216px; z-index: 5; padding: 6px 10px; }
+  #district-label .dname { font-size: 17px; font-weight: 900; letter-spacing: 0.5px; }
+  #district-label .dblurb { font-size: 11.5px; color: #c8ccd4; }
+  #minimap-wrap { position: fixed; left: 12px; bottom: 40px; z-index: 5; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.35); box-shadow: 0 2px 12px rgba(0,0,0,0.5); width: 168px; height: 168px; background: #222; }
+  #minimap { width: 168px; height: 168px; display: block; }
+  #minimap-time { position: fixed; left: 12px; bottom: 22px; z-index: 5; font-size: 12px; color: #fff; font-weight: 700; text-shadow: 0 1px 4px #000; }
+  #controls-line { position: fixed; left: 196px; bottom: 14px; z-index: 5; font-size: 12px; color: #fff; background: rgba(12,12,22,0.7); padding: 5px 10px; border-radius: 6px; }
+  /* ---- bottom centre: dialog ---- */
+  #dialog-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; width: 520px; padding: 10px 14px; z-index: 6; display: flex; gap: 10px; align-items: center; }
+  #dialog-bar .portrait { width: 44px; height: 44px; border-radius: 6px; background: #37e6c8; color: #111; font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  #dialog-bar .who { font-size: 13px; font-weight: 800; color: #ffd166; }
+  #dialog-bar .what { font-size: 14px; line-height: 1.35; }
+  /* ---- bottom right: speed ---- */
+  #speed-panel { position: fixed; right: 12px; bottom: 14px; width: 250px; padding: 10px 12px; z-index: 5; text-align: right; }
+  #speed-panel .carname { font-size: 15px; font-weight: 900; }
+  #speed-panel .speed { font-size: 44px; font-weight: 900; line-height: 1; }
+  #speed-panel .speed small { font-size: 15px; color: #c8ccd4; }
+  #speed-panel .cond { font-size: 12px; color: #c8ccd4; margin-top: 3px; }
+  #speed-panel .radio { font-size: 12.5px; color: #37e6c8; font-weight: 700; margin-top: 4px; }
+  /* ---- overlays ---- */
+  .overlay { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; background: rgba(8, 8, 16, 0.72); backdrop-filter: blur(2px); }
+  .overlay.show { display: flex; }
+  .sheet { width: 1060px; max-width: 94vw; max-height: 92vh; overflow: auto; background: rgba(16,16,28,0.96); border: 1px solid rgba(255,255,255,0.16); border-radius: 12px; padding: 13px 20px; color: #f2f3f5; }
+  .sheet h1 { margin: 0 0 2px; font-size: 26px; letter-spacing: 1px; }
+  .sheet h1 .gold { color: #ffd166; }
+  .sheet .sub { color: #c8ccd4; font-size: 13px; margin-bottom: 8px; }
+  .sheet .cols { display: flex; gap: 14px; }
+  .sheet .col { flex: 1; }
+  .sheet .col h2 { font-size: 14px; color: #ffd166; margin: 8px 0 4px; letter-spacing: 0.5px; }
+  .sheet table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .sheet td, .sheet th { padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left; }
+  .sheet .stat-big { font-size: 26px; font-weight: 900; color: #7CFC00; }
+  .sheet .stat-label { font-size: 11px; color: #c8ccd4; letter-spacing: 0.5px; }
+  .sheet .btn { display: inline-block; background: #ffd166; color: #111; font-weight: 800; border: none; border-radius: 7px; padding: 10px 20px; font-size: 15px; margin: 12px 8px 0 0; cursor: pointer; }
+  .sheet .btn.ghost { background: transparent; color: #f2f3f5; border: 1px solid rgba(255,255,255,0.4); }
+  #title-screen .sheet { text-align: center; background: rgba(16,16,28,0.88); }
+  #title-screen h1 { font-size: 58px; }
+  #title-screen .tagline { font-size: 17px; color: #ffd166; font-weight: 700; }
+  .mapgrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 6px 0; }
+  .mapgrid div { height: 26px; border-radius: 3px; background: #3a3a42; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #c8ccd4; }
+  #board-turf-map div { height: 44px; font-size: 11px; }
+  .mapgrid div.sea { background: #1d7f96; }
+  .mapgrid div.road { background: #cbb59a; color: #111; font-weight: 700; }
+  .mapgrid div.you { background: #ffd166; color: #111; font-weight: 900; }
+  .mapgrid div.target { background: #ff5da2; color: #fff; font-weight: 900; }
 </style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.min.js", "./vendor/three.core.js": "./vendor/three.core.min.js" } }
+</script>
 </head>
 <body>
-<canvas id="game" aria-label="Block Dodger: move the paddle left and right to dodge falling blocks and catch coins"></canvas>
+<canvas id="game" aria-label="Costa Palma: an open-world crime game. Drive, steal cars, outrun the police and finish 8 story missions."></canvas>
 <p id="status" role="status" aria-live="polite"></p>
+
+<div id="hud">
+  <div id="mission-panel" class="panel">
+    <div class="job"><span id="job-title">JOB 1/8 · FIRST KEY</span><span class="timer" id="job-timer">2:30</span></div>
+    <div class="objective" id="job-objective">Steal any car on the street, drive it to Palma Plaza</div>
+    <div class="next" id="job-next">NEXT Meet Nadia at the plaza fountain</div>
+    <div class="stagebar"><div id="job-stage-fill" style="width: 25%"></div></div>
+    <div class="stage" id="job-stage">STAGE 1/2 · Nadia Cruz</div>
+  </div>
+
+  <div id="dispatch-panel" class="panel">
+    <div class="head">COSTA PALMA PD RESPONSE <span class="count" id="dispatch-count">6 UNITS</span></div>
+    <table id="dispatch-rows"></table>
+    <div class="foot" id="dispatch-foot">+1 more unit · roadblock ahead</div>
+  </div>
+
+  <div id="sidejob-panel" class="panel">
+    <div class="head" id="sidejob-head">TAXI · FARE RUNNING</div>
+    <div class="fare" id="sidejob-fare">FARE $12.50 · TIP +$5</div>
+    <div class="detail" id="sidejob-detail">ROSA → NEON STRIP</div>
+    <div class="sub2" id="sidejob-sub">Pick up the passenger · 1:12 left</div>
+  </div>
+
+  <div id="wanted-panel">
+    <div class="stars" id="wanted-stars">★★★★<span class="off">★</span></div>
+    <div><span class="chip" id="chip-sight" style="color:#ff8c8c">IN SIGHT</span><span class="chip" id="chip-air" style="color:#7fb3ff">AIR UNIT DEPLOYED</span></div>
+  </div>
+
+  <div id="status-panel" class="panel">
+    <div class="money" id="money">$3,240</div>
+    <div class="clock" id="clock">18:42 · GOLDEN HOUR</div>
+    <div class="barlabel"><span>HEALTH</span><span id="hp-num">78</span></div>
+    <div class="bar"><div id="hp-fill" style="width:78%;background:#37e6c8"></div></div>
+    <div class="barlabel"><span>ARMOUR</span><span id="armor-num">55</span></div>
+    <div class="bar"><div id="armor-fill" style="width:55%;background:#7fb3ff"></div></div>
+    <div class="rank" id="rank-line">RESPECT LV 4 · FIXER</div>
+    <div class="rp" id="rp-line">290/550 RP · next: LEGEND OF THE COAST</div>
+  </div>
+
+  <div id="weapons-panel"></div>
+  <div id="crew-panel"></div>
+
+  <div id="chain-popup"><div class="n" id="chain-n">9 CHAIN</div><div class="t">KEEP IT GOING</div></div>
+  <div id="toast"></div>
+
+  <div id="district-label" class="panel"><div class="dname" id="district-name">MARINA ROW</div><div class="dblurb" id="district-blurb">Boats, bait and bad deals</div><div class="dblurb" id="district-turf" style="color:#37e6c8;font-weight:800">MARINA ROW · PALMA 65%</div></div>
+  <div id="minimap-wrap"><canvas id="minimap"></canvas></div>
+  <div id="minimap-time">18:42 · GOLDEN HOUR</div>
+  <div id="controls-line">WASD move · E enter car · F punch · SPACE shoot · H horn · M map · TAB board · P pause</div>
+
+  <div id="dialog-bar" class="panel">
+    <div class="portrait" id="dialog-face">N</div>
+    <div><div class="who" id="dialog-who">NADIA CRUZ · FIXER</div><div class="what" id="dialog-what">Flint called in every cruiser in Costa Palma. Roadblocks on the roads, rain on the way. Get to the garage — and do not stop for anyone.</div></div>
+  </div>
+
+  <div id="speed-panel" class="panel">
+    <div class="carname" id="car-name">COMET</div>
+    <div class="speed"><span id="speed-num">86</span> <small>km/h</small></div>
+    <div class="cond">CONDITION <span id="cond-num">84%</span></div>
+    <div class="bar"><div id="cond-fill" style="width:84%;background:#7CFC00"></div></div>
+    <div class="radio" id="radio-line">♪ LUMEN FM 98.6 · NEON TIDELINE</div>
+  </div>
+</div>
+
+<div id="title-screen" class="overlay show"><div class="sheet">
+  <h1>COSTA <span class="gold">PALMA</span></h1>
+  <div class="tagline">Eight jobs. One coast. Take it all.</div>
+  <p class="sub">An open-world crime game: steal cars, outrun the Costa Palma PD, run jobs for Nadia Cruz and become Legend of the Coast. Golden hour, 18:42.</p>
+  <p class="sub">WASD move / drive · E enter car · F punch · SPACE shoot · H horn · M map · TAB missions · P pause</p>
+  <button class="btn" id="btn-new">NEW GAME</button>
+  <button class="btn ghost" id="btn-continue">CONTINUE</button>
+  <p class="sub" id="title-save">No save yet — a fresh start on the coast.</p>
+</div></div>
+
+<div id="board-screen" class="overlay"><div class="sheet">
+  <h1>COSTA <span class="gold">PALMA</span> <span style="font-size:16px;color:#c8ccd4">MAP · STORY · STATS · CREW · SAVE</span></h1>
+  <div class="sub">ESC resume · Q / E switch tab · click the map to set a waypoint · <span id="board-clock" style="color:#ffd166;font-weight:800">DAY 1 · 18:42</span></div>
+  <div class="cols">
+    <div class="col">
+      <h2>COMPLETION <span id="board-complete" style="color:#7CFC00">41.2%</span></h2>
+      <div class="bar" style="height:12px"><div id="board-complete-fill" style="width:41%;background:#ffd166"></div></div>
+      <h2>TURF WAR <span id="board-turf-summary" style="color:#37e6c8">TURF 2/6 districts · 41%</span></h2>
+      <div class="mapgrid" id="board-turf-map"></div>
+      <div id="board-turf-list" style="font-size:13px;line-height:1.7"></div>
+      <h2>MAP OF COSTA PALMA</h2>
+      <div class="mapgrid" id="board-map"></div>
+      <div style="font-size:12px;color:#c8ccd4">MARINA ROW · SOLTERRA STRAND · NEON STRIP · OLD TOWN · THE DOCKS · PALMA PLAZA</div>
+      <h2>MISSION RATINGS</h2>
+      <div id="board-ratings" style="font-size:14px"></div>
+    </div>
+    <div class="col">
+      <h2>STORY MISSIONS</h2>
+      <table id="board-missions"></table>
+      <h2>SIDE JOBS</h2>
+      <table id="board-sidejobs">
+        <tr><td><b>TAXI</b> · ROSA → NEON STRIP</td><td style="text-align:right">FARE $12.50 · TIP +$5</td><td style="text-align:right">ACTIVE</td></tr>
+        <tr><td><b>VIGILANTE</b> · FLINT RUNNER</td><td style="text-align:right">REWARD $400</td><td style="text-align:right">OPEN</td></tr>
+      </table>
+      <h2>CAREER</h2>
+      <table>
+        <tr><td><span class="stat-big" id="stat-cars">41</span><div class="stat-label">CARS STOLEN</div></td><td><span class="stat-big" id="stat-cops">12</span><div class="stat-label">COPS ESCAPED</div></td></tr>
+        <tr><td><span class="stat-big" id="stat-dist">48.2 km</span><div class="stat-label">DISTANCE DRIVEN</div></td><td><span class="stat-big" id="stat-out">23</span><div class="stat-label">PEOPLE TAKEN OUT</div></td></tr>
+        <tr><td><span class="stat-big" id="stat-chain">9</span><div class="stat-label">BEST CHAIN</div></td><td><span class="stat-big" id="stat-earned">$8,250</span><div class="stat-label">TOTAL EARNED</div></td></tr>
+      </table>
+      <h2>SAVE SLOTS</h2>
+      <table id="board-saves">
+        <tr><td>1 · 41.2% · Palma Plaza</td><td style="text-align:right">15:11</td><td style="text-align:right"><b>SAVE</b></td></tr>
+        <tr><td>2 · 41.2% · Solterra Strand</td><td style="text-align:right">15:11</td><td style="text-align:right"><b>SAVE</b></td></tr>
+        <tr><td>3 · 41.2% · Old Town</td><td style="text-align:right">15:12</td><td style="text-align:right"><b>SAVE</b></td></tr>
+      </table>
+    </div>
+  </div>
+  <button class="btn" id="btn-resume">RESUME</button>
+  <button class="btn ghost" id="btn-save">SAVE GAME</button>
+</div></div>
+
+<div id="victory-screen" class="overlay"><div class="sheet" style="text-align:center">
+  <h1>COSTA PALMA <span class="gold">IS YOURS</span></h1>
+  <div class="sub">The Palma Job is done. Flint's empire is yours, and the coast knows your name.</div>
+  <div class="cols" style="text-align:left">
+    <div class="col"><h2>FINAL STATS</h2><table id="victory-stats"></table></div>
+    <div class="col"><h2>RANK</h2><div class="stat-big" style="font-size:34px">LEGEND OF THE COAST</div><div class="stat-label">RESPECT MAXED · 8/8 MISSIONS · ALL MEDALLIONS</div><h2>THE CREW</h2><div id="victory-crew" style="font-size:14px">MIRA · LIO · KIKI — the coast's finest, and they ride with you.</div></div>
+  </div>
+  <button class="btn" id="btn-again">PLAY AGAIN</button>
+  <button class="btn ghost" id="btn-cruise">KEEP CRUISING</button>
+</div></div>
+
+<div id="busted-screen" class="overlay"><div class="sheet" style="text-align:center">
+  <h1 style="color:#ff5d5d">BUSTED</h1>
+  <div class="sub">The Costa Palma PD caught up with you. Bail posted, car impounded — the coast waits.</div>
+  <button class="btn" id="btn-busted">TRY AGAIN</button>
+</div></div>
+
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

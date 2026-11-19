@@ -1,53 +1,69 @@
-// Keyboard and pointer input. Held keys give a steering direction; one-shot presses (start or
-// restart, pause) are queued as bit flags and taken once by the loop, so a press between two
-// frames is never lost and never counted twice.
+// Keyboard input for Costa Palma. Held keys steer and drive; one-shot
+// presses (enter car, punch, shoot, horn, menus) queue as flags and are taken
+// exactly once by the loop, so a press between frames is never lost or double
+// counted. Mouse click starts the game from the title screen.
+export const ACT_ENTER = 1;
+export const ACT_PUNCH = 2;
+export const ACT_SHOOT = 4;
+export const ACT_HORN = 8;
+export const ACT_PAUSE = 16;
+export const ACT_BOARD = 32;
+export const ACT_MAP = 64;
+export const ACT_CONFIRM = 128;
+export const ACT_RADIO = 256;
+export const ACT_TAXI = 512;
+export const ACT_VIG = 1024;
 
-export const ACTION_CONFIRM = 1;
-export const ACTION_PAUSE = 2;
-
-const LEFT = new Set(['ArrowLeft', 'KeyA']);
-const RIGHT = new Set(['ArrowRight', 'KeyD']);
-const CONFIRM = new Set(['Space', 'Enter']);
-const PAUSE = new Set(['KeyP', 'Escape']);
+const UP = new Set(['KeyW', 'ArrowUp']);
+const DOWN = new Set(['KeyS', 'ArrowDown']);
+const LEFT = new Set(['KeyA', 'ArrowLeft']);
+const RIGHT = new Set(['KeyD', 'ArrowRight']);
 
 export function createInput(target) {
-  let left = false;
-  let right = false;
+  const held = new Set();
   let actions = 0;
+  let lastKey = '';
+
+  function press(code) {
+    if (code === 'KeyE') actions |= ACT_ENTER;
+    else if (code === 'KeyF') actions |= ACT_PUNCH;
+    else if (code === 'Space') actions |= ACT_SHOOT;
+    else if (code === 'KeyH') actions |= ACT_HORN;
+    else if (code === 'KeyP' || code === 'Escape') actions |= ACT_PAUSE;
+    else if (code === 'Tab') actions |= ACT_BOARD;
+    else if (code === 'KeyM') actions |= ACT_MAP;
+    else if (code === 'Enter') actions |= ACT_CONFIRM;
+    else if (code === 'KeyR') actions |= ACT_RADIO;
+    else if (code === 'KeyT') actions |= ACT_TAXI;
+    else if (code === 'KeyV') actions |= ACT_VIG;
+  }
 
   window.addEventListener('keydown', (event) => {
-    if (LEFT.has(event.code)) left = true;
-    else if (RIGHT.has(event.code)) right = true;
-    else if (CONFIRM.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_CONFIRM;
-    } else if (PAUSE.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_PAUSE;
-    } else return;
-    event.preventDefault();
+    lastKey = event.code;
+    if (UP.has(event.code) || DOWN.has(event.code) || LEFT.has(event.code) || RIGHT.has(event.code)) {
+      held.add(event.code);
+      event.preventDefault();
+    } else if (!event.repeat) {
+      press(event.code);
+      if (event.code === 'Space' || event.code === 'Tab') event.preventDefault();
+    }
   });
-  window.addEventListener('keyup', (event) => {
-    if (LEFT.has(event.code)) left = false;
-    else if (RIGHT.has(event.code)) right = false;
-  });
-  // A key released while the tab is hidden never sends keyup: let go of everything on blur.
-  window.addEventListener('blur', () => {
-    left = false;
-    right = false;
-  });
-  target.addEventListener('pointerdown', () => {
-    actions |= ACTION_CONFIRM;
-  });
+  window.addEventListener('keyup', (event) => { held.delete(event.code); });
+  window.addEventListener('blur', () => { held.clear(); });
+  target.addEventListener('pointerdown', () => { actions |= ACT_CONFIRM; });
+
+  function axis(upSet, downSet) {
+    let v = 0;
+    for (const c of upSet) if (held.has(c)) v += 1;
+    for (const c of downSet) if (held.has(c)) v -= 1;
+    return v;
+  }
 
   return {
-    /** -1 for left, 1 for right, 0 for neither or both. */
-    direction() {
-      return (right ? 1 : 0) - (left ? 1 : 0);
-    },
-    /** The one-shot presses since the last call, as ACTION_* flags. */
-    takeActions() {
-      const taken = actions;
-      actions = 0;
-      return taken;
-    },
+    forward() { return axis(UP, DOWN); },
+    steer() { return axis(RIGHT, LEFT); },
+    running() { return held.has('ShiftLeft') || held.has('ShiftRight'); },
+    takeActions() { const t = actions; actions = 0; return t; },
+    lastKey() { return lastKey; },
   };
 }
