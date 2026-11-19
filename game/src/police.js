@@ -99,13 +99,13 @@ export function createPolice(scene, rng) {
     // Searchlight cone + the bright circle it paints on the street.
     const cone = new THREE.Mesh(
       new THREE.ConeGeometry(6, 20, 20, 1, true),
-      new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.24, side: THREE.DoubleSide, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false }),
     );
     cone.position.y = -10;
     group.add(cone);
     const pool = new THREE.Mesh(
       new THREE.CircleGeometry(6, 24),
-      new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.3, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.45, depthWrite: false }),
     );
     pool.rotation.x = -Math.PI / 2;
     pool.position.y = -19.9;

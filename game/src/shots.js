@@ -80,7 +80,7 @@ export function stageShot(name, ctx) {
     mr.owner = 'PALMA'; mr.pct = 65; mr.war = false;
     // Beach road: sea and sun open to the west, palms lining both sides.
     placeTraffic(ctx, [
-      [-108, -55, Math.PI, 14], [-102, -70, Math.PI, 12], [-108, -85, Math.PI, 11],
+      [-107, -50, Math.PI, 14], [-103, -58, Math.PI, 12], [-108, -85, Math.PI, 11],
       [-102, -25, 0, 9], [-63, -52, 0, 9], [-63, -20, Math.PI, 10],
       [-21, -60, 0, 11], [-105, -8, Math.PI, 13], [-66, -96, Math.PI, 15], [21, -40, 0, 10],
     ]);
@@ -105,12 +105,12 @@ export function stageShot(name, ctx) {
       h.group.rotation.y = Math.atan2(G.player.x - h.x, G.player.z - h.z);
       aimCone(h, G.player);
     }
-    // Roadblock across the road ahead, in the distance.
+    // Roadblock across the road ahead, close enough to read as a barrier.
     if (ctx.police.roadblock) {
       const rb = ctx.police.roadblock;
-      rb.x = -105; rb.z = -78;
-      rb.meshes[0]?.position.set(-109, 0, -78);
-      rb.meshes[1]?.position.set(-101, 0, -78);
+      rb.x = -105; rb.z = -64;
+      rb.meshes[0]?.position.set(-110, 0, -64);
+      rb.meshes[1]?.position.set(-100, 0, -64);
     }
     ctx.marker.position.set(0, 20, 0);
     G.missionTarget = { x: 0, z: 0 };
